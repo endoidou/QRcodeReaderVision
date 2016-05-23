@@ -8,29 +8,28 @@ import com.google.android.gms.vision.barcode.BarcodeDetector;
 import com.sample.qrcodereadervision.R;
 
 import android.Manifest;
-import android.app.Activity;
-import android.content.pm.PackageManager;
-import android.os.Build;
 import android.os.Bundle;
-import android.support.v4.app.ActivityCompat;
+import android.support.v7.app.AppCompatActivity;
 import android.util.Log;
 import android.util.SparseArray;
 import android.view.SurfaceHolder;
 import android.view.SurfaceView;
-import android.view.ViewTreeObserver;
 import android.widget.TextView;
+import android.widget.Toast;
 
 import java.io.IOException;
 
 import permissions.dispatcher.NeedsPermission;
+import permissions.dispatcher.OnPermissionDenied;
+import permissions.dispatcher.OnShowRationale;
+import permissions.dispatcher.PermissionRequest;
+import permissions.dispatcher.PermissionUtils;
 import permissions.dispatcher.RuntimePermissions;
 
 @RuntimePermissions
-public class QRcodeReader extends Activity {
+public class QRcodeReader extends AppCompatActivity {
     private final String TAG = getClass().getSimpleName();
 
-    private int mWidth;
-    private int mHeight;
     private CameraSource cameraSource;
     /** UIパーツ:プレビュー画面 */
     private SurfaceView cameraView;
@@ -42,28 +41,24 @@ public class QRcodeReader extends Activity {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
 
+        findView();
+
+        Log.d("tag", TAG);
+
+        startQRcodeReader();
+    }
+
+    /**
+     * Viewの取得
+     */
+    private void findView() {
         barcodeInfo = (TextView) findViewById(R.id.code_info);
         cameraView = (SurfaceView) findViewById(R.id.camera_view);
+    }
 
-        Log.d("tag",TAG);
-
-        ViewTreeObserver viewTreeObserver = cameraView.getViewTreeObserver();
-        viewTreeObserver.addOnGlobalLayoutListener(
-                new ViewTreeObserver.OnGlobalLayoutListener() {
-                    @Override
-                    public void onGlobalLayout() {
-                        mWidth = cameraView.getWidth();
-                        mHeight = cameraView.getHeight();
-                        ViewTreeObserver viewTreeObserver = cameraView.getViewTreeObserver();
-                        //startQRcodeReader();
-                        QRcodeReaderPermissionsDispatcher.startQRcodeReaderWithCheck(QRcodeReader.this);
-                        if (Build.VERSION.SDK_INT < 16) {
-                            viewTreeObserver.removeGlobalOnLayoutListener(this);
-                        } else {
-                            viewTreeObserver.removeOnGlobalLayoutListener(this);
-                        }
-                    }
-                });
+    @Override
+    protected void onStart() {
+        super.onStart();
     }
 
     @Override
@@ -76,11 +71,10 @@ public class QRcodeReader extends Activity {
 
     @Override
     public void onRequestPermissionsResult(int requestCode, String[] permissions, int[] grantResults) {
-        super.onRequestPermissionsResult(requestCode, permissions, grantResults);
+        QRcodeReaderPermissionsDispatcher.onRequestPermissionsResult(this, requestCode, grantResults);
     }
 
-    @NeedsPermission(Manifest.permission.CAMERA)
-    public void startQRcodeReader() {
+    private void startQRcodeReader() {
         Log.d(TAG, "starQRcodeReader");
         BarcodeDetector barcodeDetector = new BarcodeDetector.Builder(this)
                 .setBarcodeFormats(Barcode.QR_CODE)
@@ -88,7 +82,6 @@ public class QRcodeReader extends Activity {
 
         cameraSource = new CameraSource
                 .Builder(this, barcodeDetector)
-                .setRequestedPreviewSize(mWidth, mHeight)
                 .setAutoFocusEnabled(true)
                 .build();
 
@@ -97,17 +90,7 @@ public class QRcodeReader extends Activity {
                           new SurfaceHolder.Callback() {
                               @Override
                               public void surfaceCreated(SurfaceHolder holder) {
-                                  try {
-                                      if (ActivityCompat.checkSelfPermission(
-                                              getApplicationContext(),
-                                              Manifest.permission.CAMERA) != PackageManager.PERMISSION_GRANTED) {
-                                          return;
-                                      }
-                                      cameraSource.start(cameraView.getHolder());
-                                      Log.d(TAG, "started");
-                                  } catch (IOException ie) {
-                                      Log.e("CAMERA SOURCE", ie.getMessage());
-                                  }
+                                  QRcodeReaderPermissionsDispatcher.startCameraSourceWithCheck(QRcodeReader.this);
                               }
 
                               @Override
@@ -144,5 +127,33 @@ public class QRcodeReader extends Activity {
                         }
                     }
                 });
+    }
+
+    @NeedsPermission(Manifest.permission.CAMERA)
+    void startCameraSource() {
+        try {
+            if (cameraSource != null) {
+                cameraSource.start(cameraView.getHolder());
+            }
+        } catch (IOException | SecurityException e) {
+            e.printStackTrace();
+        }
+    }
+
+    @SuppressWarnings("unused")
+    @OnPermissionDenied(Manifest.permission.CAMERA)
+    void deniedPermission() {
+        if (PermissionUtils.shouldShowRequestPermissionRationale(this, Manifest.permission.CAMERA)) {
+            Toast.makeText(this, "カメラの起動にに失敗しました。", Toast.LENGTH_SHORT)
+                 .show();
+        }
+    }
+
+    @SuppressWarnings("unused")
+    @OnShowRationale(Manifest.permission.CALL_PHONE)
+    void showRationalForStorage(final PermissionRequest request) {
+        Toast.makeText(this, "カメラの使用許可が必要です", Toast.LENGTH_SHORT)
+             .show();
+        request.proceed();
     }
 }
