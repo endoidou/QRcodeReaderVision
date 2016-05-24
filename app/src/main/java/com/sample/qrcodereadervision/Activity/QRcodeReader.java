@@ -12,7 +12,6 @@ import android.os.Bundle;
 import android.support.v7.app.AppCompatActivity;
 import android.util.Log;
 import android.util.SparseArray;
-import android.view.SurfaceHolder;
 import android.view.SurfaceView;
 import android.widget.TextView;
 import android.widget.Toast;
@@ -64,9 +63,6 @@ public class QRcodeReader extends AppCompatActivity {
     @Override
     protected void onPause() {
         super.onPause();
-        if (cameraSource != null) {
-            cameraSource.stop();
-        }
     }
 
     @Override
@@ -85,25 +81,8 @@ public class QRcodeReader extends AppCompatActivity {
                 .setAutoFocusEnabled(true)
                 .build();
 
-        cameraView.getHolder()
-                  .addCallback(
-                          new SurfaceHolder.Callback() {
-                              @Override
-                              public void surfaceCreated(SurfaceHolder holder) {
-                                  QRcodeReaderPermissionsDispatcher.startCameraSourceWithCheck(QRcodeReader.this);
-                              }
-
-                              @Override
-                              public void surfaceChanged(SurfaceHolder holder, int format, int width, int height) {
-                                  Log.d(TAG, "in surfaceChanged");
-                              }
-
-                              @Override
-                              public void surfaceDestroyed(SurfaceHolder holder) {
-                                  Log.d(TAG, "in surfaceDestroyed");
-                                  cameraSource.stop();
-                              }
-                          });
+        //startCameraSource();
+        QRcodeReaderPermissionsDispatcher.startCameraSourceWithCheck(QRcodeReader.this);
 
         //QRコード読み取り
         barcodeDetector.setProcessor(
@@ -131,12 +110,14 @@ public class QRcodeReader extends AppCompatActivity {
 
     @NeedsPermission(Manifest.permission.CAMERA)
     void startCameraSource() {
+        Toast.makeText(this, "スタートカメラソースだよー", Toast.LENGTH_SHORT)
+             .show();
         try {
             if (cameraSource != null) {
                 cameraSource.start(cameraView.getHolder());
             }
         } catch (IOException | SecurityException e) {
-            e.printStackTrace();
+            Log.w(TAG,e);
         }
     }
 
