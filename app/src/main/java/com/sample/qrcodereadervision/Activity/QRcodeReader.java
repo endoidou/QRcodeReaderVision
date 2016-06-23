@@ -38,40 +38,34 @@ public class QRcodeReader extends AppCompatActivity {
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
+        Log.d("QRcodeReader", "onCreate");
         setContentView(R.layout.activity_main);
 
-        findView();
-
-        Log.d("tag", TAG);
-
-        startQRcodeReader();
-    }
-
-    /**
-     * Viewの取得
-     */
-    private void findView() {
-        barcodeInfo = (TextView) findViewById(R.id.code_info);
-        cameraView = (SurfaceView) findViewById(R.id.camera_view);
     }
 
     @Override
     protected void onStart() {
         super.onStart();
+        Log.d(TAG, "onStart");
+        barcodeInfo = (TextView) findViewById(R.id.code_info);
+        cameraView = (SurfaceView) findViewById(R.id.camera_view);
+        startQRcodeReader();
     }
 
     @Override
     protected void onPause() {
         super.onPause();
+        Log.d(TAG, "onPause");
     }
 
     @Override
     public void onRequestPermissionsResult(int requestCode, String[] permissions, int[] grantResults) {
+        Log.d(TAG, "onRequestPermissionsResult");
         QRcodeReaderPermissionsDispatcher.onRequestPermissionsResult(this, requestCode, grantResults);
     }
 
     private void startQRcodeReader() {
-        Log.d(TAG, "starQRcodeReader");
+        Log.d(TAG, "startQRcodeReader");
         BarcodeDetector barcodeDetector = new BarcodeDetector.Builder(this)
                 .setBarcodeFormats(Barcode.QR_CODE)
                 .build();
@@ -110,6 +104,7 @@ public class QRcodeReader extends AppCompatActivity {
 
     @NeedsPermission(Manifest.permission.CAMERA)
     void startCameraSource() {
+        Log.d(TAG, "startCameraSource");
         Toast.makeText(this, "スタートカメラソースだよー", Toast.LENGTH_SHORT)
              .show();
         try {
@@ -124,6 +119,7 @@ public class QRcodeReader extends AppCompatActivity {
     @SuppressWarnings("unused")
     @OnPermissionDenied(Manifest.permission.CAMERA)
     void deniedPermission() {
+        Log.d(TAG, "deniedPermission");
         if (PermissionUtils.shouldShowRequestPermissionRationale(this, Manifest.permission.CAMERA)) {
             Toast.makeText(this, "カメラの起動にに失敗しました。", Toast.LENGTH_SHORT)
                  .show();
@@ -133,6 +129,7 @@ public class QRcodeReader extends AppCompatActivity {
     @SuppressWarnings("unused")
     @OnShowRationale(Manifest.permission.CALL_PHONE)
     void showRationalForStorage(final PermissionRequest request) {
+        Log.d(TAG, "showRationalForStorage");
         Toast.makeText(this, "カメラの使用許可が必要です", Toast.LENGTH_SHORT)
              .show();
         request.proceed();
